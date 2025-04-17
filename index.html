@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjong Socket.IO Implementation Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1><i class="fas fa-code-branch"></i> Mahjong Socket.IO Tracker</h1>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="header-actions">
+                    <button id="exportBtn" class="btn btn-primary"><i class="fas fa-download"></i> Export JSON</button>
+                    <button id="exportExcelBtn" class="btn btn-success"><i class="fas fa-file-excel"></i> Export Excel</button>
+                    <label for="importFile" class="btn btn-secondary">
+                        <i class="fas fa-upload"></i> Import
+                        <input type="file" id="importFile" class="file-input" accept=".json">
+                    </label>
+                    <button id="resetBtn" class="btn btn-danger"><i class="fas fa-undo"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Stats Section -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-tasks"></i></div>
+                <div class="stat-content">
+                    <div id="statTotal" class="stat-value">0</div>
+                    <div class="stat-label">Total Events</div>
+                </div>
+            </div>
+            <div class="stat-card completed-card">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-content">
+                    <div id="statCompleted" class="stat-value">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+            <div class="stat-card progress-card">
+                <div class="stat-icon"><i class="fas fa-spinner"></i></div>
+                <div class="stat-content">
+                    <div id="statInProgress" class="stat-value">0</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+            </div>
+            <div class="stat-card not-started-card">
+                <div class="stat-icon"><i class="fas fa-hourglass-start"></i></div>
+                <div class="stat-content">
+                    <div id="statNotStarted" class="stat-value">0</div>
+                    <div class="stat-label">Not Started</div>
+                </div>
+            </div>
+            <div class="stat-card bugs-card">
+                <div class="stat-icon"><i class="fas fa-bug"></i></div>
+                <div class="stat-content">
+                    <div id="statHasBugs" class="stat-value">0</div>
+                    <div class="stat-label">Has Bugs</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-container">
+            <div class="filters-header">
+                <h2><i class="fas fa-filter"></i> Filters</h2>
+                <button id="collapseFilters" class="collapse-btn">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+            </div>
+            <div class="filters-body" id="filtersBody">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <div class="filter-icon"><i class="fas fa-search"></i></div>
+                        <input id="filterName" type="text" class="filter-input" placeholder="Search by name...">
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-icon"><i class="fas fa-folder"></i></div>
+                        <select id="filterCategory" class="filter-select">
+                            <option value="all">All Categories</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-icon"><i class="fas fa-flag"></i></div>
+                        <select id="filterStatus" class="filter-select">
+                            <option value="all">All Statuses</option>
+                            <option value="not-started">Not Started</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="has-bugs">Has Bugs</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <select id="filterPriority" class="filter-select">
+                            <option value="all">All Priorities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-icon"><i class="fas fa-exchange-alt"></i></div>
+                        <select id="filterDirection" class="filter-select">
+                            <option value="all">All Directions</option>
+                            <option value="Client → Server">Client → Server</option>
+                            <option value="Server → Client">Server → Client</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Categories -->
+        <div id="eventCategories" class="event-categories">
+            <!-- Will be populated dynamically -->
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Event</h3>
+                <button id="closeModalBtn" class="close-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label for="editName"><i class="fas fa-tag"></i> Event Name</label>
+                    <input id="editName" type="text" class="form-input">
+                </div>
+                <div class="form-row">
+                    <label for="editDirection"><i class="fas fa-exchange-alt"></i> Direction</label>
+                    <select id="editDirection" class="form-select">
+                        <option value="Client → Server">Client → Server</option>
+                        <option value="Server → Client">Server → Client</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="editCategory"><i class="fas fa-folder"></i> Category</label>
+                    <select id="editCategory" class="form-select">
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="editDescription"><i class="fas fa-align-left"></i> Description</label>
+                    <textarea id="editDescription" class="form-textarea"></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="editStatus"><i class="fas fa-flag"></i> Status</label>
+                    <select id="editStatus" class="form-select">
+                        <option value="not-started">Not Started</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="has-bugs">Has Bugs</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="editPriority"><i class="fas fa-exclamation-circle"></i> Priority</label>
+                    <select id="editPriority" class="form-select">
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="editNotes"><i class="fas fa-sticky-note"></i> Notes</label>
+                    <textarea id="editNotes" class="form-textarea" placeholder="Add any implementation notes here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEditBtn" class="btn btn-secondary"><i class="fas fa-times"></i> Cancel</button>
+                <button id="saveEditBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button id="themeToggleBtn">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+
+    <!-- SheetJS library for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- App Scripts -->
+    <script src="data.js"></script>
+    <script src="excel-export.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
